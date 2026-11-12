@@ -27,6 +27,7 @@ page = st.navigation(
     {
         "": [
             st.Page("app_pages/home.py", title="Home", icon=":material/home:", default=True),
+            st.Page("app_pages/meet_coco.py", title="Meet CoCo", icon=":material/smart_toy:"),
             st.Page(
                 "app_pages/getting_started.py",
                 title=f"Get started{' :green[:material/check_circle:]' if is_exercise_complete(0) else ''}",
@@ -39,6 +40,10 @@ page = st.navigation(
             st.Page("app_pages/ex3_trends.py", title=_title(3, "Compare trends"), icon=":material/trending_up:"),
             st.Page("app_pages/ex4_streamlit.py", title=_title(4, "Build and deploy an app"), icon=":material/web:"),
             st.Page("app_pages/ex5_report.py", title=_title(5, "HTML report snapshot"), icon=":material/description:"),
+        ],
+        "Reference": [
+            st.Page("app_pages/data_dictionary.py", title="Data dictionary", icon=":material/table_view:"),
+            st.Page("app_pages/glossary.py", title="Glossary", icon=":material/menu_book:"),
         ],
         "Help": [
             st.Page("app_pages/troubleshooting.py", title="Troubleshooting", icon=":material/build:"),

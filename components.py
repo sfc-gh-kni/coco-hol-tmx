@@ -56,14 +56,16 @@ def render_header(exercise: int, title: str, time_range: str, goal: str):
     st.space("small")
 
 
-def render_prompt(prompt_id: str, title: str, prompt_text: str):
+def render_prompt(prompt_id: str, title: str, prompt_text: str, optional: bool = False):
+    """A copyable prompt card. Optional prompts don't count toward core progress."""
     key = _key(prompt_id)
     cb_key = f"_cb_{key}"
     if cb_key not in st.session_state:
         st.session_state[cb_key] = _done_store().get(key, False)
+    badge = " :gray-badge[Optional]" if optional else ""
     with st.container(border=True):
         title_col, done_col = st.columns([6, 1], vertical_alignment="center")
-        title_col.markdown(f"#### :material/terminal: Prompt {prompt_id}: {title}")
+        title_col.markdown(f"#### :material/terminal: Prompt {prompt_id}: {title}{badge}")
         done_col.checkbox(
             "Done", key=cb_key, on_change=_on_toggle, args=(prompt_id,)
         )
@@ -99,7 +101,36 @@ def render_learn(title: str, body: str):
         st.markdown(body)
 
 
+def render_tools(tools: list[dict]):
+    """Cards naming the Snowflake features an exercise uses: name, description, icon."""
+    st.markdown("##### :material/build: Tools in this exercise")
+    cols = st.columns(len(tools))
+    for col, tool in zip(cols, tools):
+        with col.container(border=True, height="stretch"):
+            st.markdown(f":material/{tool.get('icon', 'widgets')}: **{tool['name']}**")
+            st.caption(tool["description"])
+    st.space("small")
+
+
+def render_review(items: list[str], title: str = "Before you approve"):
+    """Checklist for reviewing what CoCo proposes before accepting it."""
+    with st.container(border=True):
+        st.markdown(f"##### :material/rule: {title}")
+        st.markdown("\n".join(f"- {item}" for item in items))
+
+
+def render_go_further(note: str = "Only if you're ahead of the agenda. These don't count toward your progress."):
+    st.markdown("#### :material/explore: Go further")
+    st.caption(note)
+
+
+def render_key_concepts(concepts: list[tuple[str, str]]):
+    st.markdown("##### :material/lightbulb: Key concepts")
+    for term, definition in concepts:
+        with st.expander(f"**{term}**"):
+            st.markdown(definition)
+
+
 def render_takeaways(items: list[str]):
     st.markdown("##### :material/check_circle: What you just did")
-    for item in items:
-        st.markdown(f"- {item}")
+    st.markdown("\n".join(f"- {item}" for item in items))

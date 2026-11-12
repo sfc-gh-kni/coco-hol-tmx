@@ -12,6 +12,17 @@ from components import (
 
 render_header(0, "Get started", "0:10–0:20 (10 min)", "Signed in, right role and warehouse, CoCo answering.")
 
+with st.container(border=True):
+    st.markdown("##### :material/checklist: Before the lab (the day before, if you can)")
+    st.markdown(
+        """
+- Sign in to Snowsight once with your TMX login and finish any MFA setup. Sign-in problems are the most common cause of a slow start.
+- Use a current **Chrome, Edge or Firefox**. Allow pop-ups from Snowflake.
+- Set up your screen with this guide on one side and Snowsight on the other, or use two monitors. You'll copy prompts across constantly.
+- Read **Meet CoCo** in the sidebar (5 minutes).
+"""
+    )
+
 st.markdown("#### 1. Sign in")
 st.markdown(
     f"""
@@ -34,6 +45,17 @@ st.markdown(
 st.info(
     "Keep this SQL file open for exercises 1–3. CoCo uses the open file as context and may write SQL straight into it.",
     icon=":material/lightbulb:",
+)
+
+st.markdown("##### What you should see now")
+st.table(
+    [
+        {"Where": "User menu (bottom left)", "Shows": f"Role `{ROLE}`"},
+        {"Where": "Context selector above the SQL file", "Shows": f"`{ROLE}` and warehouse `{WAREHOUSE}`"},
+        {"Where": "Workspaces file list", "Shows": "My Workspace, containing your new SQL file"},
+        {"Where": "Beside the file", "Shows": "The CoCo side panel, with a prompt box ready"},
+    ],
+    hide_index=True,
 )
 
 st.markdown("#### 3. Smoke test")

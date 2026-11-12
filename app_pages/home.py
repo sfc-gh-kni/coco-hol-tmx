@@ -40,9 +40,29 @@ st.markdown(
 - Each exercise has **numbered prompts**. Copy one, paste it into the **CoCo side panel** in Snowsight, and press Enter.
 - CoCo asks before it runs SQL or changes a file. **Read what it proposes, then approve.** Reviewing is part of the lab.
 - Open **Check your result** under a prompt to compare your numbers with the verified answers.
+- Open **What this prompt does** to see the kind of SQL or code CoCo writes, and why.
+- Use the **Before you approve** checklist on each exercise to practise reviewing CoCo's work.
+- **Go further** prompts are optional, for when you're ahead. They have verified answers too.
 - Tick **Done** to track your progress in the sidebar.
 - CoCo's wording, SQL and layout will differ from your neighbour's. The **numbers** should match.
 """
+)
+
+st.markdown("#### What you'll build")
+st.table(
+    [
+        {"Exercise": "Exercise 1", "You produce": "A data profile: segments, freshness, grain and caveats", "Skill practised": "Grounding CoCo in governed data"},
+        {"Exercise": "Exercise 2", "You produce": "A validated pivot and summary query", "Skill practised": "Reviewing and proving generated SQL"},
+        {"Exercise": "Exercise 3", "You produce": "2026 returns and the largest daily moves", "Skill practised": "Window functions and edge cases"},
+        {"Exercise": "Exercise 4", "You produce": "A **deployed** Streamlit price explorer", "Skill practised": "Spec → plan → review → deploy"},
+        {"Exercise": "Exercise 5", "You produce": "A private one-page HTML report", "Skill practised": "Turning a query into a brief, safely"},
+    ],
+    hide_index=True,
+)
+
+st.info(
+    "New to CoCo? Read **Meet CoCo** in the sidebar before the session: it covers approvals, diffs, plans and how to write a good prompt.",
+    icon=":material/smart_toy:",
 )
 
 st.markdown("#### The data")
@@ -61,6 +81,8 @@ Daily stock prices and Nasdaq trading volumes from **Snowflake Curated Data (Fre
 | Exchange operator | NDAQ, ICE, CME, CBOE |
 | Canadian interlisted | RY, TD, BMO, BNS, ENB, CNQ, SHOP |
 | Benchmark ETF | SPY, QQQ, EWC |
+
+Full column and variable details are in the **Data dictionary** page.
 """
     )
 
