@@ -59,7 +59,7 @@ Takes about 1.5 minutes. The report should:
 
 - be titled **Exchange operators vs the S&P 500, H1 2026**;
 - show **CBOE −2.30% (rank 326), CME −15.67% (413), NDAQ −18.26% (430), ICE −22.82% (448)**;
-- show **500 tickers** ranked, median **+7.32%**, average **+12.55%**;
+- show **500 tickers** ranked, median **+7.33%** (or 7.32% from rounded returns), average **+12.55%**;
 - give the window **2026-01-02 to 2026-06-30**;
 - include the caveat about lagged free data, the equal-weight holdings list, and US listings rather than TSX data.
 """

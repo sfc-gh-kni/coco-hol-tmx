@@ -54,7 +54,7 @@ render_review(
 
 render_check(
     """
-**500 tickers ranked**; excluded **BNY, MRSH, ECHO**. Median **+7.32%**, average **+12.55%**, **312 of 500** rose.
+**500 tickers ranked**; excluded **BNY, MRSH, ECHO**. Median **+7.33%** (7.32% if returns are rounded before taking the median), average **+12.55%**, **312 of 500** rose.
 
 | Top 5 | Return | Bottom 5 | Return |
 | --- | --- | --- | --- |
