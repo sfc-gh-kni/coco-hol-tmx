@@ -30,7 +30,7 @@ render_tools(
 
 st.markdown(
     f"""
-The Marketplace view has every US listing back to the 1990s. You'll copy just what the lab needs into a table **you** own:
+The Marketplace view has every US listing back to May 2018, about 170 million rows. You'll copy just 2026 into a table **you** own:
 
 - **Source:** `{SOURCE_VIEW}`
 - **Rows:** every ticker, dates from **2026-01-01** onward
