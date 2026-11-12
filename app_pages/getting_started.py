@@ -58,7 +58,7 @@ st.markdown(
     f"""
 1. Open the **Snowsight link** your facilitator posts in the meeting chat and sign in with **your own** TMX login. Never share a login.
 2. Open the user menu (your name or initials, bottom left) and switch your role to **`{c['role']}`**.
-3. Go to **Projects → Workspaces**, open **My Workspace** and choose **+ Add new → SQL file**. Files here are private to you.
+3. Select **Workspaces** in the left navigation menu, open **My Workspace** and choose **+ Add new → SQL file**. Files here are private to you.
 4. Open the **Cortex Code (CoCo) side panel** beside the file. Keep the default model (Auto) and leave tool approvals **on**.
 """
 )

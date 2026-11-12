@@ -25,7 +25,7 @@ render_header(5, "Build and deploy an app", "1:05–1:30 (25 min)", "A deployed 
 require_context()
 
 st.success(
-    "This is the main outcome of the lab. A preview doesn't count: finish with a **deployed** app you can open from **Projects → Streamlit**.",
+    "This is the main outcome of the lab. A preview doesn't count: finish with a **deployed** app, opened from outside Workspaces.",
     icon=":material/flag:",
 )
 
@@ -41,7 +41,7 @@ st.markdown("##### :material/account_tree: Preview vs deployed")
 st.table(
     [
         {"": "Where the code lives", "Preview (Run)": "Your private My Workspace files", "Deployed app": f"A `STREAMLIT` object in `{c['schema']}`"},
-        {"": "Who can open it", "Preview (Run)": "Only you, inside Workspaces", "Deployed app": f"Your teammates (role `{c['role']}`), from Projects → Streamlit"},
+        {"": "Who can open it", "Preview (Run)": "Only you, inside Workspaces", "Deployed app": f"Your teammates (role `{c['role']}`), from its link or in Catalog"},
         {"": "Role used for queries", "Preview (Run)": f"`{c['role']}`", "Deployed app": f"The owner role, `{c['role']}`"},
         {"": "When it changes", "Preview (Run)": "Every time you click Run", "Deployed app": "Only when you deploy again"},
     ],
@@ -149,7 +149,7 @@ render_checkpoint(
 
 2. Click **Save settings**. The **Deploy** button stays greyed out until you do.
 3. Click **Deploy**. It takes about **30 seconds**.
-4. Open your app from **Projects → Streamlit**. The first cold start takes about **45 seconds**.
+4. Open the deployed app: in the left navigation menu go to **Catalog → Explorer**, open `{c['database']}` → `CONSUMER` → **Streamlits**, and select your app. The first cold start takes about **45 seconds**.
 5. Check that the deployed app shows the **same numbers** as your preview.
 6. Copy the app's link and post it in your team's chat.
 """,
