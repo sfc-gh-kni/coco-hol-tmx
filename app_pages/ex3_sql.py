@@ -1,6 +1,7 @@
 import streamlit as st
 
 from components import (
+    ctx,
     render_check,
     render_go_further,
     render_header,
@@ -10,28 +11,34 @@ from components import (
     render_review,
     render_takeaways,
     render_tools,
+    require_context,
 )
 
-render_header(2, "Generate and validate SQL", "0:35–0:55 (20 min)", "Get CoCo to write a query, then prove it's right.")
+c = ctx()
+P = c["prices"]
+VIEW = f"{c['schema']}.EXCH_OPS_Q2_{c['initials']}"
+
+render_header(3, "Generate and validate SQL", "0:40–0:55 (15 min)", "Get CoCo to write a query, then prove it's right.")
+require_context()
 
 render_tools(
     [
         {"name": "CoCo SQL authoring", "icon": "code", "description": "CoCo drafts SQL from your description, writes it into the open file as a reviewable change, and runs it only when you approve."},
         {"name": "Undo / Keep diffs", "icon": "sync_alt", "description": "File edits arrive as a highlighted change. Keep accepts it into your file; Undo throws it away."},
-        {"name": "TMX_HOL_WH", "icon": "memory", "description": "The shared lab warehouse that runs your queries. It suspends itself after 60 seconds idle."},
+        {"name": "Team warehouse", "icon": "memory", "description": f"`{c['warehouse']}` runs your queries. Your teammates share it, so keep queries scoped."},
     ]
 )
 
 st.markdown(
     """
-Generated SQL is a draft, not an answer. This exercise practises the loop you'll use on real work: **describe, review, run, then prove**. The source table is in long format, so the first job is a pivot to one row per ticker and day.
+Generated SQL is a draft, not an answer. This exercise practises the loop you'll use on real work: **describe, review, run, then prove**. Your table is in long format, so the first job is a pivot to one row per ticker and day.
 """
 )
 
 render_prompt(
-    "2.1",
+    "3.1",
     "Pivot and summarize the exchange operators",
-    """Write a read-only query that pivots TMX_COCO_HOL.SOURCE.STOCK_PRICE_TIMESERIES to one row per ticker and date, with columns for close (post-market_close) and nasdaq_volume, for the exchange operators NDAQ, ICE, CME and CBOE from 2026-04-01 to 2026-06-30. Then summarize per ticker: trading days, distinct dates, missing closes, average Nasdaq volume, and min/max close. Use fully qualified names and show the SQL before running it.""",
+    f"""Write a read-only query that pivots {P} to one row per ticker and date, with columns for close (post-market_close) and nasdaq_volume, for the exchange operators NDAQ, ICE, CME and CBOE from 2026-04-01 to 2026-06-30. Then summarize per ticker: trading days, distinct dates, missing closes, average Nasdaq volume, and min/max close. Use fully qualified names and show the SQL before running it.""",
 )
 
 st.markdown(
@@ -66,7 +73,7 @@ CBOE's wide range is real: the stock sold off from late May through June 2026. I
 
 render_learn(
     "What this prompt does",
-    """
+    f"""
 There are two common ways to turn long format into wide. CoCo may use either.
 
 **Conditional aggregation**, which is portable and easy to read:
@@ -75,19 +82,19 @@ WITH daily AS (
   SELECT ticker, date,
          MAX(IFF(variable = 'post-market_close', value, NULL)) AS close_usd,
          MAX(IFF(variable = 'nasdaq_volume',     value, NULL)) AS nasdaq_volume
-  FROM TMX_COCO_HOL.SOURCE.STOCK_PRICE_TIMESERIES
+  FROM {P}
   WHERE ticker IN ('NDAQ', 'ICE', 'CME', 'CBOE')
     AND date BETWEEN '2026-04-01' AND '2026-06-30'
     AND variable IN ('post-market_close', 'nasdaq_volume')
   GROUP BY ticker, date
 )
 SELECT ticker,
-       COUNT(*)                   AS trading_days,
-       COUNT(DISTINCT date)       AS distinct_days,
+       COUNT(*)                    AS trading_days,
+       COUNT(DISTINCT date)        AS distinct_days,
        COUNT_IF(close_usd IS NULL) AS missing_close,
-       ROUND(AVG(nasdaq_volume))  AS avg_nasdaq_volume,
-       ROUND(MIN(close_usd), 2)   AS min_close,
-       ROUND(MAX(close_usd), 2)   AS max_close
+       ROUND(AVG(nasdaq_volume))   AS avg_nasdaq_volume,
+       ROUND(MIN(close_usd), 2)    AS min_close,
+       ROUND(MAX(close_usd), 2)    AS max_close
 FROM daily
 GROUP BY ticker
 ORDER BY ticker;
@@ -98,7 +105,7 @@ ORDER BY ticker;
 SELECT *
 FROM (
   SELECT ticker, date, variable, value
-  FROM TMX_COCO_HOL.SOURCE.STOCK_PRICE_TIMESERIES
+  FROM {P}
   WHERE ticker = 'NDAQ' AND date BETWEEN '2026-06-24' AND '2026-06-30'
     AND variable IN ('post-market_close', 'nasdaq_volume')
 )
@@ -106,12 +113,12 @@ PIVOT (MAX(value) FOR variable IN ('post-market_close', 'nasdaq_volume'))
 ORDER BY date;
 ```
 
-`trading_days` equal to `distinct_days` is your first sign that the pivot didn't duplicate rows. Prompt 2.2 makes that check explicit.
+`trading_days` equal to `distinct_days` is your first sign that the pivot didn't duplicate rows. Prompt 3.2 makes that check explicit. Iceberg tables are queried with exactly the same SQL as any other table.
 """,
 )
 
 render_prompt(
-    "2.2",
+    "3.2",
     "Prove the pivot is correct",
     """Prove there is exactly one row per ticker and date in your pivot, and that no date outside the requested window is included. Show the check query.""",
 )
@@ -127,28 +134,24 @@ Notice that this prompt doesn't repeat the table name or tickers. In the same co
 render_go_further()
 
 render_prompt(
-    "2.3",
+    "3.3",
     "Save the pivot as your own view",
-    """Create a view named TMX_COCO_HOL.LAB.<MY_INITIALS>_EXCH_OPS_Q2 (replace <MY_INITIALS> with my initials) from the pivot query, with columns ticker, date, close and nasdaq_volume. Show the CREATE VIEW statement before running it. Then count its rows, distinct tickers and min/max date. Do not create or change anything else.""",
+    f"""Create a view named {VIEW} from the pivot query, with columns ticker, date, close and nasdaq_volume. Show the CREATE VIEW statement before running it. Then count its rows, distinct tickers and min/max date. Do not create or change anything else.""",
     optional=True,
 )
 
-st.caption(
-    "Replace `<MY_INITIALS>` before you send it. The LAB schema is shared, so a unique name keeps you from overwriting a neighbour's view."
-)
-
 render_check(
-    """
+    f"""
 **248 rows** (4 tickers × 62 days), **4 tickers**, **2026-04-01 to 2026-06-30**.
 
-This is the only prompt in exercises 1–3 that creates an object. Check that the statement is `CREATE VIEW` (or `CREATE OR REPLACE VIEW`) **in `TMX_COCO_HOL.LAB`** with **your** name, never in `SOURCE`. The lab role can't write to `SOURCE`, so if CoCo tries, it gets a privilege error.
+Check that the statement is `CREATE VIEW` (or `CREATE OR REPLACE VIEW`) named **`{VIEW}`**, with **your** initials. A view stores the query, not the data: it reads your Iceberg table every time it's queried.
 """
 )
 
 render_prompt(
-    "2.4",
+    "3.4",
     "Monthly volume trend",
-    """Using TMX_COCO_HOL.SOURCE.STOCK_PRICE_TIMESERIES, show average daily nasdaq_volume per month for NDAQ, ICE, CME and CBOE from April to June 2026, one row per ticker and month. Which month stands out, and what might explain it? Read-only.""",
+    f"""Using {P}, show average daily nasdaq_volume per month for NDAQ, ICE, CME and CBOE from April to June 2026, one row per ticker and month. Which month stands out, and what might explain it? Read-only.""",
     optional=True,
 )
 
@@ -161,7 +164,7 @@ render_check(
 | ICE | 250,328 | 278,795 | 435,751 |
 | NDAQ | 1,210,412 | 1,285,628 | 1,956,917 |
 
-**June** stands out for all four: volume was 62% (NDAQ) to 212% (CBOE) above April. That lines up with the June selloff you'll measure in exercise 3. CoCo can point out the timing, but it can't know the cause from this data alone. A good answer says so.
+**June** stands out for all four: volume was 62% (NDAQ) to 212% (CBOE) above April. That lines up with the June selloff you'll measure in exercise 4. CoCo can point out the timing, but it can't know the cause from this data alone. A good answer says so.
 """
 )
 
@@ -176,7 +179,7 @@ render_key_concepts(
 
 render_takeaways(
     [
-        "Turned a business question into reviewed, runnable SQL.",
+        "Turned a business question into reviewed, runnable SQL over your Iceberg table.",
         "Accepted CoCo's change only after reading it.",
         "Validated the grain and the date window with a separate check query.",
     ]

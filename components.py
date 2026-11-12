@@ -1,19 +1,128 @@
+import re
+
 import streamlit as st
 
-ROLE = "TMX_HOL_ATTENDEE"
-WAREHOUSE = "TMX_HOL_WH"
-APP_SCHEMA = "TMX_COCO_HOL.LAB"
-PRICES = "TMX_COCO_HOL.SOURCE.STOCK_PRICE_TIMESERIES"
-WATCHLIST = "TMX_COCO_HOL.SOURCE.WATCHLIST"
+from sp500 import AS_OF as SP500_AS_OF
+from sp500 import TICKERS as SP500_TICKERS
+
+PREFIX = "DEV_EDX_HACKATHONTOR"
+S3_PREFIX = "DEV_HACKATHONTOR"
+SCHEMA = "CONSUMER"
+SOURCE_VIEW = "SNOWFLAKE_CURATED_DATA_FREE.PUBLIC_DATA_FREE.STOCK_PRICE_TIMESERIES"
+EXCHANGE_OPERATORS = ["NDAQ", "ICE", "CME", "CBOE"]
+
+TEAMS = [
+    "AGENTARCHITECTS",
+    "BYTEBANDITS",
+    "CLOUDCRAFTERS",
+    "DATADRAGONS",
+    "ICEBERGINNOVATORS",
+    "LOGICLEGENDS",
+    "MODELMAVERICKS",
+    "NEURALNINJAS",
+    "PIXELPIONEERS",
+    "PROMPTPREDATORS",
+    "QUERYQUEST",
+    "ROCKETROCKSTARS",
+    "SCHEMASHIFTERS",
+    "VPCVOYAGERS",
+    "WAREHOUSEWARRIOR",
+]
 
 EXERCISE_PROMPTS = {
-    0: ["0.1"],
-    1: ["1.1"],
-    2: ["2.1", "2.2"],
-    3: ["3.1"],
-    4: ["4.1", "4.2", "4.3"],
-    5: ["5.1"],
+    0: ["0.1", "0.2"],
+    1: ["1.1", "1.2"],
+    2: ["2.1"],
+    3: ["3.1", "3.2"],
+    4: ["4.1"],
+    5: ["5.1", "5.2", "5.3"],
+    6: ["6.1"],
 }
+
+_INITIALS_RE = re.compile(r"^[A-Z][A-Z0-9]{1,5}$")
+
+
+def clean_initials(raw: str) -> str:
+    return re.sub(r"[^A-Z0-9]", "", (raw or "").upper())
+
+
+def team_names(team: str) -> dict:
+    return {
+        "Role": f"{PREFIX}_{team}_ANALYST_OKTA",
+        "Functional role": f"{PREFIX}_{team}_ANALYST_FR",
+        "Warehouse": f"{PREFIX}_{team}_USER_WH",
+        "Database": f"{PREFIX}_{team}_DB",
+        "Schema": SCHEMA,
+        "External volume": f"{S3_PREFIX}_{team}_S3_EXT_VOL",
+    }
+
+
+def ctx() -> dict:
+    """The attendee's object names. Placeholders until team and initials are set in the sidebar."""
+    team = st.session_state.get("team_w") or "<TEAM>"
+    initials = clean_initials(st.session_state.get("initials_w", ""))
+    ok_initials = bool(_INITIALS_RE.match(initials))
+    initials = initials if ok_initials else "<INITIALS>"
+    names = team_names(team)
+    database = names["Database"]
+    return {
+        "team": team,
+        "initials": initials,
+        "ready": team in TEAMS and ok_initials,
+        "role": names["Role"],
+        "fr_role": names["Functional role"],
+        "warehouse": names["Warehouse"],
+        "database": database,
+        "schema": f"{database}.{SCHEMA}",
+        "ext_vol": names["External volume"],
+        "table": f"STOCK_PRICE_TIMESERIES_{initials}",
+        "prices": f"{database}.{SCHEMA}.STOCK_PRICE_TIMESERIES_{initials}",
+    }
+
+
+def render_context_picker():
+    """Sidebar team and initials inputs. Kept in session state and the URL so a refresh doesn't lose them."""
+    qp = st.query_params
+    if "_team_default" not in st.session_state:
+        st.session_state["_team_default"] = TEAMS.index(qp["team"]) if qp.get("team") in TEAMS else None
+        st.session_state["_initials_default"] = clean_initials(qp.get("initials", ""))
+    st.selectbox(
+        "Your team",
+        TEAMS,
+        index=st.session_state["_team_default"],
+        key="team_w",
+        placeholder="Pick your team",
+    )
+    st.text_input(
+        "Your initials",
+        value=st.session_state["_initials_default"],
+        key="initials_w",
+        max_chars=6,
+        placeholder="For example KN",
+        help="2–6 letters or digits, starting with a letter. They become the suffix of your table, view and app names.",
+    )
+    raw = st.session_state.get("initials_w", "")
+    if raw and not _INITIALS_RE.match(clean_initials(raw)):
+        st.error("Use 2–6 letters or digits, starting with a letter.", icon=":material/error:")
+    c = ctx()
+    if c["ready"]:
+        st.query_params["team"] = c["team"]
+        st.query_params["initials"] = c["initials"]
+        st.caption(f"Names in this guide are filled in for **{c['team']}** and **{c['initials']}**.")
+    else:
+        st.caption("Pick your team and enter your initials: every prompt and SQL block fills in your names.")
+
+
+def require_context():
+    if not ctx()["ready"]:
+        st.warning(
+            "Pick **your team** and enter **your initials** in the sidebar first. Until then, prompts show `<TEAM>` and `<INITIALS>` placeholders.",
+            icon=":material/badge:",
+        )
+
+
+def sp500_in_list() -> str:
+    return ", ".join(f"'{t}'" for t in SP500_TICKERS)
 
 
 def _done_store() -> dict:

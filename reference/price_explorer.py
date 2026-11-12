@@ -1,39 +1,35 @@
-"""TMX CoCo HOL reference app: read-only price and volume explorer.
+"""TMX CoCo HOL reference app: read-only price and volume explorer over your Iceberg table.
 
-Facilitator fallback for Exercise 4. Uses only packages bundled with the
-Streamlit container runtime; no external access integration required.
+Reference solution for exercise 5. Set PRICES to your table. Uses only packages bundled
+with the Streamlit container runtime; no external access integration required.
 """
 
-import altair as alt
 import pandas as pd
 import streamlit as st
 
-SOURCE = "TMX_COCO_HOL.SOURCE.STOCK_PRICE_TIMESERIES"
-WATCHLIST = "TMX_COCO_HOL.SOURCE.WATCHLIST"
+PRICES = "DEV_EDX_HACKATHONTOR_<TEAM>_DB.CONSUMER.STOCK_PRICE_TIMESERIES_<INITIALS>"
+DEFAULT_TICKERS = ["NDAQ", "ICE", "CME", "CBOE"]
 
-st.set_page_config(page_title="TMX HOL stock explorer", layout="wide")
+st.set_page_config(page_title="S&P 500 price explorer", layout="wide")
 conn = st.connection("snowflake")
 
 
 @st.cache_data(ttl=3600)
-def load_watchlist() -> pd.DataFrame:
-    return conn.query(f"SELECT TICKER, COMPANY_NAME, SEGMENT FROM {WATCHLIST} ORDER BY SEGMENT, TICKER")
-
-
-@st.cache_data(ttl=3600)
-def load_bounds() -> pd.DataFrame:
-    return conn.query(f"SELECT MIN(DATE) AS MIN_D, MAX(DATE) AS MAX_D FROM {SOURCE}")
+def load_universe() -> pd.DataFrame:
+    return conn.query(
+        f"SELECT TICKER, MIN(DATE) AS MIN_D, MAX(DATE) AS MAX_D FROM {PRICES} GROUP BY TICKER ORDER BY TICKER"
+    )
 
 
 @st.cache_data(ttl=3600)
 def load_daily(tickers: tuple, start, end) -> pd.DataFrame:
-    # Tickers come only from the admin-owned watchlist (allow-list); dates are date objects.
+    # Tickers come only from the table itself (allow-list); dates are date objects.
     ticker_list = ", ".join(f"'{t}'" for t in tickers if t in allowed)
     sql = f"""
         SELECT TICKER, DATE,
                MAX(IFF(VARIABLE = 'post-market_close_adjusted', VALUE, NULL)) AS ADJ_CLOSE,
                MAX(IFF(VARIABLE = 'nasdaq_volume', VALUE, NULL))             AS NASDAQ_VOLUME
-        FROM {SOURCE}
+        FROM {PRICES}
         WHERE TICKER IN ({ticker_list})
           AND DATE BETWEEN '{start.isoformat()}' AND '{end.isoformat()}'
           AND VARIABLE IN ('post-market_close_adjusted', 'nasdaq_volume')
@@ -43,24 +39,25 @@ def load_daily(tickers: tuple, start, end) -> pd.DataFrame:
     return conn.query(sql)
 
 
-watchlist = load_watchlist()
-allowed = set(watchlist["TICKER"])
-bounds = load_bounds().iloc[0]
-min_d, max_d = pd.to_datetime(bounds["MIN_D"]).date(), pd.to_datetime(bounds["MAX_D"]).date()
+universe = load_universe()
+allowed = set(universe["TICKER"])
+min_d = pd.to_datetime(universe["MIN_D"]).min().date()
+max_d = pd.to_datetime(universe["MAX_D"]).max().date()
 
-st.title("Price and volume explorer")
+st.title("S&P 500 price explorer")
 st.caption(
-    f"Source: Snowflake Curated Data (Free), US listings in USD. Latest available date: {max_d}. "
-    "Free tier lags about three months. Volume is Nasdaq-venue volume, not consolidated volume."
+    f"Source: your Iceberg copy of Snowflake Curated Data (Free), S&P 500 US listings in USD. Latest available date: {max_d}. "
+    "The free tier lags about three months. Volume is Nasdaq-venue volume, not consolidated volume."
 )
 
 with st.sidebar:
-    segments = st.multiselect("Segment", sorted(watchlist["SEGMENT"].unique()), default=["Exchange operator"])
-    options = watchlist[watchlist["SEGMENT"].isin(segments)]["TICKER"].tolist()
-    tickers = st.multiselect("Tickers", options, default=options[:4])
-    picked = st.date_input(
-        "Date range", value=(pd.Timestamp("2026-01-01").date(), max_d), min_value=min_d, max_value=max_d
+    tickers = st.multiselect(
+        "Tickers",
+        sorted(allowed),
+        default=[t for t in DEFAULT_TICKERS if t in allowed],
+        max_selections=10,
     )
+    picked = st.date_input("Date range", value=(min_d, max_d), min_value=min_d, max_value=max_d)
 
 if not tickers:
     st.info("Pick at least one ticker.")
@@ -87,16 +84,10 @@ for col, row in zip(cols, summary.itertuples()):
     col.metric(row.TICKER, f"${row.last_close:,.2f}", f"{row.return_pct:+.1f}%")
 
 st.subheader("Adjusted close, indexed to 100 at start of range")
-st.altair_chart(
-    alt.Chart(df).mark_line().encode(x="DATE:T", y=alt.Y("INDEXED:Q", title="Index"), color="TICKER:N"),
-    use_container_width=True,
-)
+st.line_chart(df, x="DATE", y="INDEXED", color="TICKER")
 
 st.subheader("Daily Nasdaq-venue volume")
-st.altair_chart(
-    alt.Chart(df).mark_bar().encode(x="DATE:T", y=alt.Y("NASDAQ_VOLUME:Q", title="Shares"), color="TICKER:N"),
-    use_container_width=True,
-)
+st.bar_chart(df, x="DATE", y="NASDAQ_VOLUME", color="TICKER")
 
 with st.expander("Data"):
-    st.dataframe(summary, hide_index=True, use_container_width=True)
+    st.dataframe(summary, hide_index=True)

@@ -1,6 +1,8 @@
 import streamlit as st
 
-from components import ROLE
+from components import ctx
+
+c = ctx()
 
 st.title("Meet CoCo")
 st.markdown(
@@ -10,6 +12,7 @@ st.markdown(
 st.markdown("#### What CoCo can do here")
 with st.container(horizontal=True):
     for icon, title, body in [
+        ("ac_unit", "Create", "Create objects you ask for, such as your Iceberg table or a view, after you approve the statement."),
         ("travel_explore", "Explore", "Find tables, read their columns and profile the data with read-only queries."),
         ("code", "Write SQL", "Draft, explain, fix and validate SQL, writing it into your open file."),
         ("web", "Build apps", "Create and edit Streamlit app files in your workspace."),
@@ -22,7 +25,7 @@ with st.container(horizontal=True):
 st.markdown("#### What CoCo can't do")
 st.markdown(
     f"""
-- **Go beyond your role.** CoCo acts as you, with `{ROLE}`. If you can't read or change something, neither can it. The source tables are read-only for everyone.
+- **Go beyond your role.** CoCo acts as you, with `{c['role']}`. If you can't read or change something, neither can it. The Marketplace view is read-only for everyone.
 - **Act without you.** With approvals on, every SQL statement and file change waits for your OK.
 - **See other chats.** Each conversation starts fresh. Within one conversation it remembers earlier turns, and it also sees the file that's open beside it.
 - **Guarantee the same output twice.** Wording, SQL style and app layout vary between runs and between people. The **numbers** shouldn't.
@@ -32,7 +35,7 @@ st.markdown(
 st.markdown("#### The four things CoCo will ask you")
 st.table(
     [
-        {"You'll see": "A SQL statement with approve / reject", "What it means": "CoCo wants to run a query", "What to do": "Read it. Approve only reads, unless the step says otherwise."},
+        {"You'll see": "A SQL statement with approve / reject", "What it means": "CoCo wants to run a query", "What to do": "Read it. Approve only reads, unless the step says otherwise (exercise 1 creates your table)."},
         {"You'll see": "A highlighted change with **Undo / Keep**", "What it means": "CoCo edited a file", "What to do": "Skim the change, then Keep or Undo."},
         {"You'll see": "A plan ending *Proceed, modify, or cancel?*", "What it means": "A multi-step task is about to start", "What to do": "Check the scope, then reply `Proceed`."},
         {"You'll see": "Scoping questions", "What it means": "A skill wants more detail", "What to do": "In this lab, cancel them. The prompts already contain the answers."},
@@ -42,11 +45,11 @@ st.table(
 st.caption("If CoCo seems stuck, it's almost always waiting for one of these.")
 
 st.markdown("#### Anatomy of a good prompt")
-st.markdown("Every prompt in this guide follows the same pattern. Here's prompt 2.1, split into its parts:")
+st.markdown("Every prompt in this guide follows the same pattern. Here's prompt 3.1, split into its parts:")
 
 ANATOMY = [
     ("Goal", "blue", "Write a read-only query that pivots … to one row per ticker and date"),
-    ("Objects", "violet", "TMX_COCO_HOL.SOURCE.STOCK_PRICE_TIMESERIES"),
+    ("Objects", "violet", c["prices"]),
     ("Scope", "orange", "for the exchange operators NDAQ, ICE, CME and CBOE from 2026-04-01 to 2026-06-30"),
     ("Output", "green", "summarize per ticker: trading days, distinct dates, missing closes, average Nasdaq volume, and min/max close"),
     ("Guardrails", "red", "read-only … use fully qualified names and show the SQL before running it"),

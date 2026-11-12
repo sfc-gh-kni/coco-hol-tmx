@@ -1,19 +1,21 @@
 import streamlit as st
 
-from components import PRICES, WATCHLIST
+from components import SOURCE_VIEW, SP500_AS_OF, SP500_TICKERS, ctx
+
+c = ctx()
 
 st.title("TMX CoCo hands-on lab")
 st.markdown(
-    "Use **Cortex Code (CoCo)** in Snowsight to explore market data, write and check SQL, "
-    "and build and deploy your own Streamlit app. No local install is needed."
+    "Use **Cortex Code (CoCo)** in Snowsight to build your own **Apache Iceberg** table from Marketplace data, "
+    "explore it, write and check SQL, and build and deploy your own Streamlit app. No local install is needed."
 )
 
 st.space("small")
 
 with st.container(horizontal=True):
     st.metric("Hands-on", "90 min", border=True)
-    st.metric("Exercises", "5", border=True)
-    st.metric("You deploy", "1 app", border=True)
+    st.metric("Exercises", "6", border=True)
+    st.metric("You create", "1 Iceberg table, 1 app", border=True)
     st.metric("Tools", "Snowsight only", border=True)
 
 st.space("small")
@@ -22,21 +24,23 @@ st.markdown("#### Agenda")
 st.table(
     [
         {"Time": "0:00–0:10", "Block": "Welcome and intro (facilitator)"},
-        {"Time": "0:10–0:20", "Block": "Get started: sign in, role, warehouse, CoCo panel, smoke test"},
-        {"Time": "0:20–0:35", "Block": "Exercise 1: Discover the data"},
-        {"Time": "0:35–0:55", "Block": "Exercise 2: Generate and validate SQL"},
-        {"Time": "0:55–1:05", "Block": "Exercise 3: Compare trends (optional if you are behind)"},
-        {"Time": "1:05–1:30", "Block": "Exercise 4: Build and deploy a Streamlit app"},
-        {"Time": "1:30–1:40", "Block": "Exercise 5: HTML report snapshot"},
+        {"Time": "0:10–0:20", "Block": "Get started: pick your team, sign in, set your context, smoke test"},
+        {"Time": "0:20–0:30", "Block": "Exercise 1: Create your Iceberg table"},
+        {"Time": "0:30–0:40", "Block": "Exercise 2: Discover the data"},
+        {"Time": "0:40–0:55", "Block": "Exercise 3: Generate and validate SQL"},
+        {"Time": "0:55–1:05", "Block": "Exercise 4: Compare trends (optional if you are behind)"},
+        {"Time": "1:05–1:30", "Block": "Exercise 5: Build and deploy a Streamlit app"},
+        {"Time": "1:30–1:40", "Block": "Exercise 6: HTML report snapshot"},
         {"Time": "1:40–2:00", "Block": "Q&A"},
     ],
     hide_index=True,
 )
-st.caption("There is no break. Exercise 4 is the one that matters most: if you fall behind, skip 3 and jump to 4 at 1:05.")
+st.caption("There is no break. Exercises 1 and 5 matter most: everything reads the table from exercise 1, and the app is the outcome. If you fall behind, skip 4 and jump to 5 at 1:05.")
 
 st.markdown("#### How this guide works")
 st.markdown(
     """
+- **First, pick your team and enter your initials in the sidebar.** Every prompt and SQL block then shows your own role, warehouse, database and table names.
 - Each exercise has **numbered prompts**. Copy one, paste it into the **CoCo side panel** in Snowsight, and press Enter.
 - CoCo asks before it runs SQL or changes a file. **Read what it proposes, then approve.** Reviewing is part of the lab.
 - Open **Check your result** under a prompt to compare your numbers with the verified answers.
@@ -51,11 +55,12 @@ st.markdown(
 st.markdown("#### What you'll build")
 st.table(
     [
-        {"Exercise": "Exercise 1", "You produce": "A data profile: segments, freshness, grain and caveats", "Skill practised": "Grounding CoCo in governed data"},
-        {"Exercise": "Exercise 2", "You produce": "A validated pivot and summary query", "Skill practised": "Reviewing and proving generated SQL"},
-        {"Exercise": "Exercise 3", "You produce": "2026 returns and the largest daily moves", "Skill practised": "Window functions and edge cases"},
-        {"Exercise": "Exercise 4", "You produce": "A **deployed** Streamlit price explorer", "Skill practised": "Spec → plan → review → deploy"},
-        {"Exercise": "Exercise 5", "You produce": "A private one-page HTML report", "Skill practised": "Turning a query into a brief, safely"},
+        {"Exercise": "Exercise 1", "You produce": "Your own Iceberg table: 2026 prices for the S&P 500", "Skill practised": "Open table formats, reviewed DDL"},
+        {"Exercise": "Exercise 2", "You produce": "A data profile: grain, freshness, gaps and caveats", "Skill practised": "Grounding CoCo in governed data"},
+        {"Exercise": "Exercise 3", "You produce": "A validated pivot and summary query", "Skill practised": "Reviewing and proving generated SQL"},
+        {"Exercise": "Exercise 4", "You produce": "First-half 2026 returns ranked across the S&P 500", "Skill practised": "Window functions and edge cases"},
+        {"Exercise": "Exercise 5", "You produce": "A **deployed** Streamlit price explorer", "Skill practised": "Spec → plan → review → deploy"},
+        {"Exercise": "Exercise 6", "You produce": "A private one-page HTML report", "Skill practised": "Turning a query into a brief, safely"},
     ],
     hide_index=True,
 )
@@ -69,20 +74,14 @@ st.markdown("#### The data")
 with st.container(border=True):
     st.markdown(
         f"""
-Daily stock prices and Nasdaq trading volumes from **Snowflake Curated Data (Free)**, copied into a read-only snapshot for this lab:
+Daily stock prices and Nasdaq trading volumes from **Snowflake Curated Data (Free)** on the Snowflake Marketplace:
 
-| Table | What it holds |
+| Object | What it is |
 | --- | --- |
-| `{PRICES}` | One row per ticker, date and variable (long format), 2024-01-02 to 2026-08-12 |
-| `{WATCHLIST}` | 14 tickers grouped into three segments |
+| `{SOURCE_VIEW}` | The Marketplace view: every US listing, one row per ticker, date and variable (long format) |
+| `{c['prices']}` | **Your** Iceberg table, created in exercise 1: 2026 only, the {len(SP500_TICKERS)} S&P 500 tickers, stored in your team's S3 external volume |
 
-| Segment | Tickers |
-| --- | --- |
-| Exchange operator | NDAQ, ICE, CME, CBOE |
-| Canadian interlisted | RY, TD, BMO, BNS, ENB, CNQ, SHOP |
-| Benchmark ETF | SPY, QQQ, EWC |
-
-Full column and variable details are in the **Data dictionary** page.
+The S&P 500 list comes from an index fund's holdings on {SP500_AS_OF}. Full column and variable details are in the **Data dictionary** page; the names for every team are in **Team names**.
 """
     )
 
@@ -96,9 +95,9 @@ st.warning(
 
 st.markdown("#### Ground rules")
 st.markdown(
-    """
-- Everyone shares one lab role and one app schema. **Work only on your own files and app.** Don't drop, replace or edit anything you didn't create.
-- The source tables are read-only. CoCo can't change them, and you don't need it to.
+    f"""
+- Your team shares one role, one warehouse and one `CONSUMER` schema. **Work only on objects with your initials** (`…_{c['initials']}`) and your own app. Don't drop, replace or edit anything you didn't create.
+- The Marketplace view is read-only. Exercise 1 is the only step that writes data, and it writes only your own table.
 - Don't paste passwords, personal data or confidential TMX information into CoCo prompts or app code.
 """
 )

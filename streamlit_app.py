@@ -2,7 +2,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from components import completed_prompt_count, is_exercise_complete, total_prompt_count
+from components import completed_prompt_count, is_exercise_complete, render_context_picker, total_prompt_count
 
 _DIR = Path(__file__).parent
 
@@ -35,13 +35,15 @@ page = st.navigation(
             ),
         ],
         "Hands-on (90 min)": [
-            st.Page("app_pages/ex1_discover.py", title=_title(1, "Discover the data"), icon=":material/travel_explore:"),
-            st.Page("app_pages/ex2_sql.py", title=_title(2, "Generate and validate SQL"), icon=":material/database:"),
-            st.Page("app_pages/ex3_trends.py", title=_title(3, "Compare trends"), icon=":material/trending_up:"),
-            st.Page("app_pages/ex4_streamlit.py", title=_title(4, "Build and deploy an app"), icon=":material/web:"),
-            st.Page("app_pages/ex5_report.py", title=_title(5, "HTML report snapshot"), icon=":material/description:"),
+            st.Page("app_pages/ex1_iceberg.py", title=_title(1, "Create your Iceberg table"), icon=":material/ac_unit:"),
+            st.Page("app_pages/ex2_discover.py", title=_title(2, "Discover the data"), icon=":material/travel_explore:"),
+            st.Page("app_pages/ex3_sql.py", title=_title(3, "Generate and validate SQL"), icon=":material/database:"),
+            st.Page("app_pages/ex4_trends.py", title=_title(4, "Compare trends"), icon=":material/trending_up:"),
+            st.Page("app_pages/ex5_streamlit.py", title=_title(5, "Build and deploy an app"), icon=":material/web:"),
+            st.Page("app_pages/ex6_report.py", title=_title(6, "HTML report snapshot"), icon=":material/description:"),
         ],
         "Reference": [
+            st.Page("app_pages/team_context.py", title="Team names", icon=":material/groups:"),
             st.Page("app_pages/data_dictionary.py", title="Data dictionary", icon=":material/table_view:"),
             st.Page("app_pages/glossary.py", title="Glossary", icon=":material/menu_book:"),
         ],
@@ -54,6 +56,9 @@ page = st.navigation(
 )
 
 with st.sidebar:
+    with st.container(border=True):
+        st.markdown("**:material/badge: Your lab context**")
+        render_context_picker()
     done, total = completed_prompt_count(), total_prompt_count()
     st.progress(done / total, text=f"{done} of {total} done")
     st.caption("Progress is kept in this browser tab only.")
