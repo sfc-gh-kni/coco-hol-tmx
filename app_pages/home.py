@@ -1,6 +1,6 @@
 import streamlit as st
 
-from components import SOURCE_VIEW, SP500_AS_OF, SP500_TICKERS, ctx
+from components import BENCHMARK_ETFS, CANADIAN_INTERLISTED, EXCHANGE_OPERATORS, SOURCE_VIEW, ctx
 
 c = ctx()
 
@@ -55,10 +55,10 @@ st.markdown(
 st.markdown("#### What you'll build")
 st.table(
     [
-        {"Exercise": "Exercise 1", "You produce": "Your own Iceberg table: 2026 prices for the S&P 500", "Skill practised": "Open table formats, reviewed DDL"},
+        {"Exercise": "Exercise 1", "You produce": "Your own Iceberg table: 2026 prices for every US listing", "Skill practised": "Open table formats, reviewed DDL"},
         {"Exercise": "Exercise 2", "You produce": "A data profile: grain, freshness, gaps and caveats", "Skill practised": "Grounding CoCo in governed data"},
         {"Exercise": "Exercise 3", "You produce": "A validated pivot and summary query", "Skill practised": "Reviewing and proving generated SQL"},
-        {"Exercise": "Exercise 4", "You produce": "First-half 2026 returns ranked across the S&P 500", "Skill practised": "Window functions and edge cases"},
+        {"Exercise": "Exercise 4", "You produce": "First-half 2026 returns: exchange operators vs benchmarks", "Skill practised": "Window functions and edge cases"},
         {"Exercise": "Exercise 5", "You produce": "A **deployed** Streamlit price explorer", "Skill practised": "Spec → plan → review → deploy"},
         {"Exercise": "Exercise 6", "You produce": "A private one-page HTML report", "Skill practised": "Turning a query into a brief, safely"},
     ],
@@ -79,9 +79,17 @@ Daily stock prices and Nasdaq trading volumes from **Snowflake Curated Data (Fre
 | Object | What it is |
 | --- | --- |
 | `{SOURCE_VIEW}` | The Marketplace view: every US listing, one row per ticker, date and variable (long format) |
-| `{c['prices']}` | **Your** Iceberg table, created in exercise 1: 2026 only, the {len(SP500_TICKERS)} S&P 500 tickers, stored in your team's S3 external volume |
+| `{c['prices']}` | **Your** Iceberg table, created in exercise 1: 2026 only, every ticker (about 13,900), stored in your team's S3 external volume |
 
-The S&P 500 list comes from an index fund's holdings on {SP500_AS_OF}. Full column and variable details are in the **Data dictionary** page; the names for every team are in **Team names**.
+The exercises focus on three groups:
+
+| Group | Tickers |
+| --- | --- |
+| Exchange operators | {', '.join(EXCHANGE_OPERATORS)} |
+| Benchmark ETFs | {', '.join(BENCHMARK_ETFS)} |
+| Canadian interlisted (US listings) | {', '.join(CANADIAN_INTERLISTED)} |
+
+Full column and variable details are in the **Data dictionary** page; the names for every team are in **Team names**.
 """
     )
 

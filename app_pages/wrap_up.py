@@ -16,10 +16,10 @@ else:
 st.markdown("#### What you built")
 st.markdown(
     f"""
-- Your own **Apache Iceberg table** of 2026 S&P 500 prices, `{c['prices']}`, in your team's S3 volume.
+- Your own **Apache Iceberg table** of 2026 US stock prices, `{c['prices']}`, in your team's S3 volume.
 - A data profile of that table, with freshness, gaps and caveats checked.
 - Reviewed, validated SQL: a pivot, a summary and a correctness check.
-- Window-function analysis ranking first-half 2026 returns across the S&P 500.
+- Window-function analysis comparing the exchange operators with benchmark ETFs and Canadian interlisted names.
 - A **deployed Streamlit app** in `{c['schema']}`.
 - A private HTML report built from a query.
 """

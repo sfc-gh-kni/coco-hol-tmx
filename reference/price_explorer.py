@@ -10,7 +10,7 @@ import streamlit as st
 PRICES = "DEV_EDX_HACKATHONTOR_<TEAM>_DB.CONSUMER.STOCK_PRICE_TIMESERIES_<INITIALS>"
 DEFAULT_TICKERS = ["NDAQ", "ICE", "CME", "CBOE"]
 
-st.set_page_config(page_title="S&P 500 price explorer", layout="wide")
+st.set_page_config(page_title="US stock price explorer", layout="wide")
 conn = st.connection("snowflake")
 
 
@@ -44,9 +44,9 @@ allowed = set(universe["TICKER"])
 min_d = pd.to_datetime(universe["MIN_D"]).min().date()
 max_d = pd.to_datetime(universe["MAX_D"]).max().date()
 
-st.title("S&P 500 price explorer")
+st.title("US stock price explorer")
 st.caption(
-    f"Source: your Iceberg copy of Snowflake Curated Data (Free), S&P 500 US listings in USD. Latest available date: {max_d}. "
+    f"Source: your Iceberg copy of Snowflake Curated Data (Free), US listings in USD. Latest available date: {max_d}. "
     "The free tier lags about three months. Volume is Nasdaq-venue volume, not consolidated volume."
 )
 

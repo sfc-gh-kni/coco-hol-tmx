@@ -57,13 +57,13 @@ TERMS = {
     ],
     "Markets": [
         ("Adjusted price", "A price rescaled for dividends and splits, so returns over time are comparable."),
+        ("Benchmark ETF", "A fund tracking an index, used for comparison: SPY (S&P 500), QQQ (Nasdaq-100), EWC (MSCI Canada)."),
         ("Consolidated volume", "Total shares traded across all venues. `nasdaq_volume` is only the Nasdaq slice of it."),
         ("Correlation", "From −1 to +1: how closely two return series move together."),
         ("Drawdown", "Percent fall from the running peak. Maximum drawdown is the worst such fall in a period."),
-        ("Equal-weight average", "The average of every stock's daily return, each counted equally. The official S&P 500 is weighted by company size instead."),
         ("Exchange operator", "A company that runs trading venues and clearing, such as Nasdaq, ICE, CME and Cboe."),
         ("Indexed to 100", "Each series divided by its first value and multiplied by 100, so different price levels share one chart."),
-        ("S&P 500", "An index of about 500 large US companies. The lab uses an index fund's holdings list as the membership."),
+        ("Interlisted", "Listed on more than one exchange, such as RY on both TSX and NYSE. Your table has only the US listing."),
         ("Ticker change", "A company moving to a new symbol, such as MMC → MRSH. Price data keyed by ticker splits the history at the change."),
     ],
 }

@@ -57,8 +57,8 @@ A table with your name is already there.
 """,
     ),
     (
-        "Exercise 1: CoCo copied far too many rows",
-        "If the row count is in the millions, the ticker list was dropped from the `WHERE` clause. Ask a teammate or the facilitator before deleting anything: since the table is yours, you can `DROP ICEBERG TABLE` it and run prompt 1.1 again.",
+        "Exercise 1: the copy is far too big, or slow",
+        "About 15 million rows is expected for 2026. If the row count is near **170 million**, the `DATE >= '2026-01-01'` filter was dropped and you copied the whole history. The table is yours, so you can `DROP ICEBERG TABLE` it and run prompt 1.1 again. Ask the facilitator first if you're unsure whose table it is.",
     ),
     (
         "My numbers don't match the expected answers",
@@ -66,7 +66,7 @@ A table with your name is already there.
 Ask CoCo to show its SQL and check for these common causes:
 - **Raw instead of adjusted close.** Returns in exercises 4–6 use `post-market_close_adjusted`.
 - **Wrong date window.** Exercise 3 is 2026-04-01 to 2026-06-30. Returns, drawdowns and correlations use 2026-01-02 to 2026-06-30.
-- **Tickers with gaps.** Rankings and medians use only tickers with all 123 first-half trading days (excludes BNY, MRSH, ECHO).
+- **Wrong tickers or a short history.** Check every ticker has all 123 first-half trading days. Tickers that changed in 2026 (BNY, MRSH, ECHO) are short.
 - **`NULL` first-day moves.** Filter out rows where the previous close is `NULL`.
 - **Long-format mix-up.** The query must filter on `VARIABLE` or pivot first.
 - **Rounding.** Small differences in the last decimal place are fine.

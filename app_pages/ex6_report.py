@@ -40,14 +40,14 @@ st.markdown(
 
 render_prompt(
     "6.1",
-    "Exchange operators vs the S&P 500",
-    f"""Create a one-page, self-contained HTML report titled "Exchange operators vs the S&P 500, H1 2026". Query my Iceberg table {P} for adjusted-close (post-market_close_adjusted) returns from 2026-01-02 to 2026-06-30. Include only tickers that have a close on every trading day in that window. Show NDAQ, ICE, CME and CBOE with their return and rank among those tickers, plus the number of tickers ranked and their median and average return. Show the query result before building the report. Include a small table, one inline bar chart, the window dates, and a caveat that this is lagged Snowflake Curated Data (Free) for US listings, an equal-weight view of an S&P 500 holdings list rather than the official index, and not TSX data. Inline HTML/CSS only, with no external scripts or images. Save it to my workspace. Do not publish or share. Do not ask me further questions; use sensible defaults.""",
+    "Exchange operators vs benchmarks",
+    f"""Create a one-page, self-contained HTML report titled "Exchange operators vs benchmarks, H1 2026". Query my Iceberg table {P} for adjusted-close (post-market_close_adjusted) returns from 2026-01-02 to 2026-06-30 for NDAQ, ICE, CME, CBOE, SPY, QQQ and EWC, with each ticker's group (exchange operator or benchmark ETF) and number of trading days. Show the query result before building the report. Include a small table, one inline bar chart, the window dates, and a caveat that this is lagged Snowflake Curated Data (Free) for US listings, not TSX data. Inline HTML/CSS only, with no external scripts or images. Save it to my workspace. Do not publish or share. Do not ask me further questions; use sensible defaults.""",
 )
 
 render_review(
     [
         "The query result CoCo shows **before** it builds the page matches exercise 4. That result is what gets frozen into the report.",
-        f"The query reads **your** table, `{P}`, and filters to tickers with all 123 trading days.",
+        f"The query reads **your** table, `{P}`, and every ticker has 123 trading days.",
         "The HTML has no `<script src=...>`, CDN links or remote images.",
         "CoCo **saves** the file but doesn't publish or share it.",
     ]
@@ -57,11 +57,10 @@ render_check(
     """
 Takes about 1.5 minutes. The report should:
 
-- be titled **Exchange operators vs the S&P 500, H1 2026**;
-- show **CBOE −2.30% (rank 326), CME −15.67% (413), NDAQ −18.26% (430), ICE −22.82% (448)**;
-- show **500 tickers** ranked, median **+7.33%** (or 7.32% from rounded returns), average **+12.55%**;
+- be titled **Exchange operators vs benchmarks, H1 2026**;
+- show **QQQ +20.30%, SPY +9.90%, EWC +6.86%, CBOE −2.30%, CME −15.67%, NDAQ −18.26%, ICE −22.82%**;
 - give the window **2026-01-02 to 2026-06-30**;
-- include the caveat about lagged free data, the equal-weight holdings list, and US listings rather than TSX data.
+- include the caveat about lagged free data for US listings, not TSX data.
 """
 )
 
@@ -77,7 +76,7 @@ render_learn(
 | Part of the prompt | Why it's there |
 | --- | --- |
 | Full table name | The report chat is a new conversation. It can't see your SQL file or earlier chats. |
-| *Only tickers with a close on every day* | Repeats exercise 4's completeness rule, so BNY's reused ticker doesn't skew the median or the ranks. |
+| *Group and trading days* | Lets you see at a glance that every ticker covers the full window, so the comparison is fair. |
 | *Show the query result before building* | Lets you check the numbers **before** they're frozen into a page. |
 | Table + one chart + window + caveat | A clear, testable spec, so everyone's report is checkable against the same answers. |
 | *Inline HTML/CSS only* | The file renders without internet access and can't load outside code. |
@@ -93,12 +92,12 @@ render_go_further()
 render_prompt(
     "6.2",
     "Add a risk section",
-    f"""Add a second section to my report "Exchange operators vs the S&P 500, H1 2026": a table of the maximum drawdown on adjusted close from 2026-01-02 to 2026-06-30, with its trough date, for NDAQ, ICE, CME and CBOE, plus the median maximum drawdown across the same complete tickers, from {P}. Show the query result first, keep everything inline, and add one sentence comparing the exchange operators with the median. Do not publish or share. Do not ask me further questions.""",
+    f"""Add a second section to my report "Exchange operators vs benchmarks, H1 2026": a table of the maximum drawdown on adjusted close from 2026-01-02 to 2026-06-30, with its trough date, for NDAQ, ICE, CME, CBOE and SPY, from {P}. Show the query result first, keep everything inline, and add one sentence comparing the exchange operators with SPY. Do not publish or share. Do not ask me further questions.""",
     optional=True,
 )
 
 render_check(
-    "CBOE **−36.86%**, CME **−30.91%**, ICE **−29.50%**, NDAQ **−23.24%** (all at the end of June 2026), against a median of **−21.01%** across 500 tickers. These match prompt 4.2."
+    "CBOE **−36.86%**, CME **−30.91%**, ICE **−29.50%**, NDAQ **−23.24%** (all at the end of June 2026), SPY **−9.27%** on 2026-03-30. These match prompt 4.2."
 )
 
 render_key_concepts(

@@ -113,7 +113,7 @@ render_check(
 - **Long format**: one row per ticker, date and variable.
 - **9 columns**, including `EVENT_TIMESTAMP_UTC` of type **`TIMESTAMP_NTZ(9)`**: remember this one for exercise 1.
 - **9 variables**: open, high, low and close (each raw and adjusted), plus `nasdaq_volume`.
-- From 2026-01-01: about **14,000 tickers** (every US listing in the source, not just the S&P 500), first date **2026-01-02**. The latest date is about **three months before today**: the free data lags.
+- From 2026-01-01: about **13,900 tickers** (every US listing in the source: stocks, ETFs and funds), first date **2026-01-02**. The latest date is about **three months before today**: the free data lags.
 
 Takes about 1 minute.
 """

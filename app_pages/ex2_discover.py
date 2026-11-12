@@ -23,7 +23,7 @@ require_context()
 render_tools(
     [
         {"name": "CoCo side panel", "icon": "smart_toy", "description": "The AI assistant beside your SQL file. It reads table metadata, runs read-only queries you approve, and explains what it found."},
-        {"name": "Your Iceberg table", "icon": "ac_unit", "description": f"`{c['table']}`: 2026 prices for the S&P 500, copied from Snowflake Curated Data in exercise 1."},
+        {"name": "Your Iceberg table", "icon": "ac_unit", "description": f"`{c['table']}`: every US listing's 2026 prices, copied from Snowflake Curated Data in exercise 1."},
         {"name": "Workspaces SQL file", "icon": "edit_note", "description": "Your private scratch file in My Workspace. CoCo uses it as context and can write SQL into it."},
     ]
 )
@@ -53,7 +53,7 @@ render_check(
 | Check | Expected |
 | --- | --- |
 | Grain | One row per **ticker × date × variable** (long format) |
-| Tickers | **503** |
+| Tickers | About **13,900** (13,924 when this guide was checked): stocks, ETFs and funds |
 | First date | **2026-01-02** |
 | Latest date | About **three months before today**. The free tier lags, and your copy stops at the date you ran exercise 1. (2026-08-13 when this guide was checked.) |
 | Adjusted close | Adjusted for dividends and splits. NDAQ on 2026-06-30 closes at **78.70**, adjusted **78.43** |
@@ -94,28 +94,37 @@ render_go_further()
 render_prompt(
     "2.2",
     "Completeness check",
-    f"""In {P}, count the trading days and distinct variables per ticker from 2026-01-02 to 2026-06-30. List every ticker that has fewer trading days than the maximum, with its first and last date in that window, and suggest why each one is short. Read-only.""",
+    f"""In {P}, from 2026-01-02 to 2026-06-30, count how many tickers have every trading day and all 9 variables, and how many don't. Split the incomplete ones into: started after 2026-01-02, ended before 2026-06-30, both, or gaps in between. Then show the trading-day count for NDAQ, ICE, CME, CBOE, SPY, QQQ and EWC, and for BK, BNY, MMC, MRSH, SATS and ECHO, and suggest why the last six are short. Read-only.""",
     optional=True,
 )
 
 render_check(
     """
-The window has **123 trading days**. 500 tickers have all 123 days and all 9 variables. Three don't:
+The window has **123 trading days** and **13,534 tickers**. **7,534** have all 123 days and all 9 variables; **6,000** don't:
 
-| Ticker | Days | First date | Why |
-| --- | --- | --- | --- |
-| ECHO | 5 | 2026-06-24 | EchoStar, which traded as **SATS** until 2026-06-23 |
-| BNY | 52 | 2026-01-02 | A **reused ticker**: a different security used `BNY` (at about $10, trading only some days) before Bank of New York Mellon moved to it from **BK** on 2026-05-21. The close jumps from about $10 to $139 that day |
-| MRSH | 115 | 2026-01-14 | Marsh McLennan, which traded as **MMC** until 2026-01-13 |
+| Why short | Tickers |
+| --- | --- |
+| Started after 2026-01-02 (new listings, renames) | 1,629 |
+| Ended before 2026-06-30 (delistings, renames) | 1,091 |
+| Both | 1,046 |
+| Gaps in between (thinly traded) | 2,234 |
 
-The price data is keyed by **ticker, not company**. CoCo can spot the gaps, but the reason (a ticker change) comes from outside the data, so expect it as a suggestion. You'll exclude these three when ranking returns in exercise 4.
+NDAQ, ICE, CME, CBOE, SPY, QQQ and EWC each have all **123** days. The six named tickers are three **ticker changes**:
+
+| Old ticker | Days | New ticker | Days | What happened |
+| --- | --- | --- | --- | --- |
+| MMC | 8 | MRSH | 115 | Marsh McLennan moved to MRSH on 2026-01-14 |
+| BK | 96 | BNY | 52 | Bank of New York Mellon moved to BNY on 2026-05-21. `BNY` was a **reused ticker**: a different, $10 security used it before, so its close jumps from about $10 to $139 that day |
+| SATS | 118 | ECHO | 5 | EchoStar moved to ECHO on 2026-06-24 |
+
+The price data is keyed by **ticker, not company**. CoCo can spot the gaps, but the reason (a ticker change) comes from outside the data, so expect it as a suggestion. Any ranking across many tickers must exclude incomplete ones first.
 """
 )
 
 render_prompt(
     "2.3",
-    "Where do the S&P 500 stocks list?",
-    f"""From {P}, count distinct tickers by PRIMARY_EXCHANGE_NAME and by ASSET_CLASS. Then show the listing exchange for NDAQ, ICE, CME and CBOE. Explain what this means for comparing nasdaq_volume between an NYSE-listed and a Nasdaq-listed stock. Read-only.""",
+    "Where do the tickers list?",
+    f"""From {P}, for 2026-01-02 to 2026-06-30, count distinct tickers by PRIMARY_EXCHANGE_NAME and by ASSET_CLASS. Then show the listing exchange and asset class for NDAQ, ICE, CME, CBOE, SPY, QQQ, EWC, RY, TD, BMO, BNS, ENB, CNQ and SHOP. Explain what this means for comparing nasdaq_volume between an NYSE-listed and a Nasdaq-listed stock. Read-only.""",
     optional=True,
 )
 
@@ -123,13 +132,23 @@ render_check(
     """
 | Primary exchange | Tickers |
 | --- | --- |
-| New York Stock Exchange | 346 |
-| Nasdaq | 156 |
-| BATS Z-Exchange (Cboe BZX) | 1, which is CBOE itself |
+| Nasdaq | 5,875 |
+| New York Stock Exchange | 3,096 |
+| NYSE Arca | 2,770 |
+| BATS Z-Exchange (Cboe BZX) | 1,448 |
+| NYSE American (`NYSE MKT LLC`) | 335 |
+| No value | 10 |
 
-Asset classes: **Equity 473**, **REIT 26**, and four one-offs: BNY `Closed-End Funds` (left over from the ticker's previous owner), IT `Common Shares`, IVZ `Tracking Stock`, OTIS `Global Depositary Shares`. Labels in source metadata aren't always right.
+Largest asset classes: **Equity 7,194**, **ETF-Index Fund Shares 5,473**, Closed-End Funds 339, Global Shares 204, REIT 134.
 
-The exchange operators: **NDAQ** and **CME** list on Nasdaq, **ICE** on NYSE, **CBOE** on Cboe BZX.
+| Listing | Tickers |
+| --- | --- |
+| New York Stock Exchange (`NYS`) | ICE, RY, TD, BMO, BNS, ENB, CNQ, SHOP |
+| Nasdaq (`NAS`) | NDAQ, CME, QQQ |
+| NYSE Arca (`PSE`) | SPY, EWC |
+| Cboe BZX (`BAT`) | CBOE |
+
+The 11 stocks are `Equity`; EWC is `ETF-Index Fund Shares`; SPY and QQQ are `ETF-Portfolio Depositary Receipt`. RY to SHOP are **Canadian interlisted** companies: this is their US listing, in USD.
 
 The insight to look for: for **NYSE-listed** names, Nasdaq-venue volume is only a slice of their trading. Compare volume **over time for one ticker**, not **across tickers**.
 """
@@ -140,6 +159,7 @@ render_key_concepts(
         ("Long (tall) format", "Each row holds one measure for one ticker on one day: `TICKER`, `DATE`, `VARIABLE`, `VALUE`. It's flexible, but you must filter or pivot on `VARIABLE` before aggregating."),
         ("Adjusted vs raw prices", "Raw prices are what traded. Adjusted prices are rescaled for dividends and splits so a return over time reflects what a holder earned. Use adjusted prices for returns."),
         ("Nasdaq-venue volume", "Shares traded on Nasdaq's venues only. US stocks trade on many venues, so this isn't the stock's total (consolidated) volume."),
+        ("Interlisted", "A company listed on more than one exchange, such as RY on both TSX and NYSE. Your table has only the US listing, in USD."),
         ("Ticker vs company", "A ticker is a symbol, and companies change them. A gap at the start of a ticker's history, or a sudden price jump, often means a rename or a reused symbol."),
     ]
 )

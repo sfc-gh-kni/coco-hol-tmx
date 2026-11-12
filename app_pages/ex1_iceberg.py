@@ -2,8 +2,6 @@ import streamlit as st
 
 from components import (
     SOURCE_VIEW,
-    SP500_AS_OF,
-    SP500_TICKERS,
     ctx,
     render_check,
     render_go_further,
@@ -15,12 +13,11 @@ from components import (
     render_takeaways,
     render_tools,
     require_context,
-    sp500_in_list,
 )
 
 c = ctx()
 
-render_header(1, "Create your Iceberg table", "0:20–0:30 (10 min)", "Your own Apache Iceberg table of 2026 S&P 500 prices, stored in your team's S3 volume.")
+render_header(1, "Create your Iceberg table", "0:20–0:30 (10 min)", "Your own Apache Iceberg table of 2026 US stock prices, stored in your team's S3 volume.")
 require_context()
 
 render_tools(
@@ -36,7 +33,7 @@ st.markdown(
 The Marketplace view has every US listing back to the 1990s. You'll copy just what the lab needs into a table **you** own:
 
 - **Source:** `{SOURCE_VIEW}`
-- **Rows:** dates from **2026-01-01** onward, and only the **{len(SP500_TICKERS)} S&P 500 tickers** listed in the prompt
+- **Rows:** every ticker, dates from **2026-01-01** onward
 - **Target:** `{c['prices']}`, an Iceberg table on `{c['ext_vol']}`
 
 Every later exercise and your app read **this table**, not the Marketplace view.
@@ -46,7 +43,7 @@ Every later exercise and your app read **this table**, not the Marketplace view.
 render_prompt(
     "1.1",
     "Create the Iceberg table",
-    f"""Create a Snowflake-managed Apache Iceberg table named {c['prices']} with CREATE ICEBERG TABLE ... AS SELECT, using CATALOG = 'SNOWFLAKE' and EXTERNAL_VOLUME = '{c['ext_vol']}'. Select all columns of {SOURCE_VIEW}, but cast EVENT_TIMESTAMP_UTC to TIMESTAMP_NTZ(6), because Iceberg tables only support microsecond precision. Keep only rows with DATE >= '2026-01-01' and TICKER in this list of S&P 500 tickers: {sp500_in_list()}. Use plain CREATE ICEBERG TABLE, not CREATE OR REPLACE, so an existing table is never overwritten. Use warehouse {c['warehouse']}. Show me the statement before running it, and do not create, alter or drop anything else. Afterwards, report the row count, the number of distinct tickers, and the min and max DATE.""",
+    f"""Create a Snowflake-managed Apache Iceberg table named {c['prices']} with CREATE ICEBERG TABLE ... AS SELECT, using CATALOG = 'SNOWFLAKE' and EXTERNAL_VOLUME = '{c['ext_vol']}'. Select all columns of {SOURCE_VIEW}, but cast EVENT_TIMESTAMP_UTC to TIMESTAMP_NTZ(6), because Iceberg tables only support microsecond precision. Keep only rows with DATE >= '2026-01-01', for every ticker. Use plain CREATE ICEBERG TABLE, not CREATE OR REPLACE, so an existing table is never overwritten. Use warehouse {c['warehouse']}. Show me the statement before running it, and do not create, alter or drop anything else. Afterwards, report the row count, the number of distinct tickers, and the min and max DATE.""",
 )
 
 render_review(
@@ -54,20 +51,20 @@ render_review(
         f"It's **`CREATE ICEBERG TABLE {c['prices']}`**: your database, `CONSUMER`, and **your** initials. Not `CREATE OR REPLACE`.",
         f"`CATALOG = 'SNOWFLAKE'` and `EXTERNAL_VOLUME = '{c['ext_vol']}'` come **before** `AS SELECT`.",
         "`EVENT_TIMESTAMP_UTC` is cast with `::TIMESTAMP_NTZ(6)`.",
-        "The `WHERE` clause has `DATE >= '2026-01-01'` **and** the ticker list. Without the list you'd copy about 14,000 tickers.",
+        "The `WHERE` clause is `DATE >= '2026-01-01'`. Without it you'd copy the whole history back to 2018: about 170 million rows instead of 15 million.",
     ]
 )
 
 render_check(
     f"""
-Takes about **10–30 seconds** to run.
+Takes about **10–30 seconds** to run (11 seconds on an X-Small warehouse in testing).
 
 | Check | Expected |
 | --- | --- |
-| Distinct tickers | **503** |
+| Distinct tickers | About **13,900**: every US listing that traded in 2026, stocks and ETFs. **2026-08-13** gave 13,924. |
 | Min date | **2026-01-02** (the first trading day of 2026) |
 | Max date | The same latest date as the Marketplace view: about three months before today |
-| Rows | About **700,000**, and growing: 503 tickers × 9 variables add about 4,500 rows per trading day of new source data. **2026-08-13** gave 695,322. |
+| Rows | About **15 million**, and growing by about 100,000 per trading day of new source data. **2026-08-13** gave 15,275,371 (about 140 MB of Parquet in S3). |
 
 **Error `Invalid time type scale ... EVENT_TIMESTAMP_UTC ... TIMESTAMP_NTZ(9)`**: the statement is missing the cast. Ask CoCo to add `::TIMESTAMP_NTZ(6)` and run it again.
 
@@ -85,8 +82,7 @@ SELECT ticker, asset_class, primary_exchange_code, primary_exchange_name,
        variable, variable_name, date, value,
        event_timestamp_utc::TIMESTAMP_NTZ(6) AS event_timestamp_utc
 FROM {SOURCE_VIEW}
-WHERE date >= '2026-01-01'
-  AND ticker IN ({sp500_in_list()});""",
+WHERE date >= '2026-01-01';""",
         language="sql",
         wrap_lines=True,
     )
@@ -94,7 +90,7 @@ WHERE date >= '2026-01-01'
 render_prompt(
     "1.2",
     "Prove the copy is complete",
-    f"""Verify my new table {c['prices']}. Show its Iceberg properties with SHOW ICEBERG TABLES (catalog, external volume, base location) and its column types. Then compare it with {SOURCE_VIEW} filtered the same way (DATE >= '2026-01-01' and the same tickers as my table): row count, distinct tickers and max DATE must match. Also count the rows and trading days from 2026-01-02 to 2026-06-30 in my table. Read-only.""",
+    f"""Verify my new table {c['prices']}. Show its Iceberg properties with SHOW ICEBERG TABLES (catalog, external volume, base location) and its column types. Then compare it with {SOURCE_VIEW} filtered the same way (DATE >= '2026-01-01'): row count, distinct tickers and max DATE must match. Also count the rows and trading days from 2026-01-02 to 2026-06-30 in my table. Read-only.""",
 )
 
 render_check(
@@ -107,7 +103,7 @@ render_check(
 | Table type | `MANAGED` (Snowflake is the catalog) |
 | `EVENT_TIMESTAMP_UTC` type | `TIMESTAMP_NTZ(6)`; the text columns show as `VARCHAR(134217728)`, Iceberg's unbounded string |
 | Rows, tickers, max date vs the view | **Identical** |
-| 2026-01-02 to 2026-06-30 | **555,048 rows**, **123 trading days** |
+| 2026-01-02 to 2026-06-30 | **12,124,710 rows**, **123 trading days**, **13,534 tickers** |
 
 The first-half numbers are fixed: that's the window the rest of the lab uses, so everyone's answers match whatever day you run it.
 """
@@ -121,7 +117,7 @@ render_learn(
 | *Snowflake-managed … `CATALOG = 'SNOWFLAKE'`* | Snowflake owns the Iceberg metadata, so you get normal SQL: `SELECT`, `INSERT`, `UPDATE`, views, apps. |
 | *`EXTERNAL_VOLUME = '{c['ext_vol']}'`* | The Parquet data and Iceberg metadata files land in **your team's S3 bucket**, where other engines could read them. |
 | *Cast to `TIMESTAMP_NTZ(6)`* | The view stores nanoseconds (scale 9). The Iceberg spec stores microseconds, so Snowflake rejects scale 9 rather than silently truncating. |
-| *The ticker list* | The free share has no S&P 500 membership column, so the list scopes the copy: **{len(SP500_TICKERS)} tickers**, from the holdings of an S&P 500 index fund on {SP500_AS_OF}. |
+| *`DATE >= '2026-01-01'`* | The view goes back to 2018 with about 170 million rows. One year keeps your copy to about 15 million rows and 140 MB, so it builds in seconds. |
 | *Not `CREATE OR REPLACE`* | Your teammates share this schema. A plain `CREATE` fails rather than overwriting a table that has the same name. |
 | *Show the statement first* | It's the only step in the lab that writes data. Read it before you approve it. |
 
@@ -159,7 +155,7 @@ render_key_concepts(
 render_takeaways(
     [
         "Turned a Marketplace view into your own open-format Iceberg table with one reviewed statement.",
-        "Scoped the copy to 2026 and the S&P 500, so the table is small and fast.",
+        "Scoped the copy to 2026, so the table is small and fast while still covering every US listing.",
         "Proved the copy matches its source before building on it.",
     ]
 )

@@ -17,7 +17,7 @@ from components import (
 c = ctx()
 P = c["prices"]
 
-render_header(4, "Compare trends", "0:55–1:05 (10 min)", "Rank the S&P 500 on first-half returns and find the biggest moves, with window functions.")
+render_header(4, "Compare trends", "0:55–1:05 (10 min)", "Compare first-half returns and find the biggest moves, with window functions.")
 require_context()
 
 st.info(
@@ -27,26 +27,34 @@ st.info(
 
 render_tools(
     [
-        {"name": "Window functions", "icon": "functions", "description": "`LAG`, running `MAX` and `RANK` compare each row with its neighbours without a self-join."},
+        {"name": "Window functions", "icon": "functions", "description": "`LAG`, running `MAX` and `ROW_NUMBER` compare each row with its neighbours without a self-join."},
         {"name": "QUALIFY", "icon": "rule", "description": "Snowflake's filter on window-function results: the window-function equivalent of `HAVING`."},
         {"name": "MIN_BY / MAX_BY", "icon": "calculate", "description": "Return the value at the earliest or latest date in one pass: the first and last close of a period."},
     ]
 )
 
 st.markdown(
-    "The window is fixed at **2026-01-02 to 2026-06-30** (the first half), so your answers match the guide whenever you copied the data."
+    """
+The window is fixed at **2026-01-02 to 2026-06-30** (the first half), so your answers match the guide whenever you copied the data. You'll compare 14 tickers in three groups:
+
+| Group | Tickers |
+| --- | --- |
+| Exchange operators | NDAQ, ICE, CME, CBOE |
+| Benchmark ETFs | SPY (S&P 500), QQQ (Nasdaq-100), EWC (MSCI Canada) |
+| Canadian interlisted (US listings) | RY, TD, BMO, BNS, ENB, CNQ, SHOP |
+"""
 )
 
 render_prompt(
     "4.1",
     "First-half returns and largest daily moves",
-    f"""Using post-market_close_adjusted in {P}, compute each ticker's return from 2026-01-02 to 2026-06-30. Only rank tickers that have a close on every trading day in that window, and list the tickers you excluded. Show the top 5 and bottom 5 returns, the median and average return, how many tickers rose, and the rank of NDAQ, ICE, CME and CBOE. Then, for those four exchange operators, find each one's largest single-day percent move in the same window using a window function, and explain how you handled the first trading day of 2026.""",
+    f"""Using post-market_close_adjusted in {P}, compute the return from 2026-01-02 to 2026-06-30 for these tickers, labelled by group: exchange operators NDAQ, ICE, CME, CBOE; benchmark ETFs SPY, QQQ, EWC; Canadian interlisted RY, TD, BMO, BNS, ENB, CNQ, SHOP. Show the first and last date and the number of trading days for each, and sort by return descending. Then, for the four exchange operators, find each one's largest single-day percent move in the same window using a window function, and explain how you handled the first trading day of 2026.""",
 )
 
 render_review(
     [
         "The query uses `post-market_close_adjusted`, not the raw close.",
-        "Tickers without all **123** trading days are excluded **before** ranking: BNY, MRSH and ECHO (exercise 2.2).",
+        "Every ticker shows **123** trading days and dates **2026-01-02 to 2026-06-30**.",
         "The largest move is ranked by **absolute** change, so big drops count as well as big gains.",
         "Rows whose previous close is `NULL` are filtered out before ranking the moves.",
     ]
@@ -54,22 +62,13 @@ render_review(
 
 render_check(
     """
-**500 tickers ranked**; excluded **BNY, MRSH, ECHO**. Median **+7.33%** (7.32% if returns are rounded before taking the median), average **+12.55%**, **312 of 500** rose.
+| Group | Return, 2026-01-02 to 2026-06-30 (adjusted close) |
+| --- | --- |
+| Canadian interlisted | BMO +34.89%, TD +30.34%, RY +22.91%, BNS +19.11%, CNQ +18.02%, ENB +16.02%, SHOP −27.44% |
+| Benchmark ETF | QQQ +20.30%, SPY +9.90%, EWC +6.86% |
+| Exchange operator | CBOE −2.30%, CME −15.67%, NDAQ −18.26%, ICE −22.82% |
 
-| Top 5 | Return | Bottom 5 | Return |
-| --- | --- | --- | --- |
-| SNDK | +709.61% | EPAM | −59.97% |
-| MU | +262.70% | INTU | −58.24% |
-| INTC | +252.89% | CSGP | −56.98% |
-| WDC | +241.01% | BSX | −54.89% |
-| DELL | +239.17% | TTD | −52.16% |
-
-| Exchange operator | Return | Rank of 500 |
-| --- | --- | --- |
-| CBOE | −2.30% | 326 |
-| CME | −15.67% | 413 |
-| NDAQ | −18.26% | 430 |
-| ICE | −22.82% | 448 |
+All four exchange operators trailed every benchmark ETF. SHOP is the only name lower than ICE.
 
 Largest single-day moves:
 
@@ -80,32 +79,33 @@ Largest single-day moves:
 | ICE | −7.49% | 2026-02-11 |
 | CME | −5.80% | 2026-06-01 |
 
-**If BNY tops the list at +1,369%**, the completeness filter is missing: that's the reused-ticker jump from exercise 2. **If every move is dated 2026-01-02 with a blank value**, the `NULL` previous close wasn't filtered (see below).
+**If every move is dated 2026-01-02 with a blank value**, the `NULL` previous close wasn't filtered (see below).
 """
 )
 
 render_learn(
     "What this prompt does, and the first-day trap",
     f"""
-**Returns: completeness filter, then first and last value per ticker**
+**Returns: first and last value per ticker**
 ```sql
-WITH px AS (
-  SELECT ticker, date, value AS adj_close
-  FROM {P}
-  WHERE variable = 'post-market_close_adjusted'
-    AND date BETWEEN '2026-01-02' AND '2026-06-30'
-), complete AS (
-  SELECT ticker FROM px GROUP BY ticker
-  HAVING COUNT(DISTINCT date) = (SELECT COUNT(DISTINCT date) FROM px)   -- 123
-), ret AS (
-  SELECT ticker,
-         ROUND(100 * (MAX_BY(adj_close, date) / MIN_BY(adj_close, date) - 1), 2) AS h1_return_pct
-  FROM px WHERE ticker IN (SELECT ticker FROM complete)
-  GROUP BY ticker
+WITH tickers (ticker, grp) AS (
+  SELECT * FROM VALUES
+    ('NDAQ', 'Exchange operator'), ('ICE', 'Exchange operator'), ('CME', 'Exchange operator'), ('CBOE', 'Exchange operator'),
+    ('SPY', 'Benchmark ETF'), ('QQQ', 'Benchmark ETF'), ('EWC', 'Benchmark ETF'),
+    ('RY', 'Canadian interlisted'), ('TD', 'Canadian interlisted'), ('BMO', 'Canadian interlisted'),
+    ('BNS', 'Canadian interlisted'), ('ENB', 'Canadian interlisted'), ('CNQ', 'Canadian interlisted'),
+    ('SHOP', 'Canadian interlisted')
+), px AS (
+  SELECT p.ticker, t.grp, p.date, p.value AS adj_close
+  FROM {P} p JOIN tickers t ON t.ticker = p.ticker
+  WHERE p.variable = 'post-market_close_adjusted'
+    AND p.date BETWEEN '2026-01-02' AND '2026-06-30'
 )
-SELECT ticker, h1_return_pct, RANK() OVER (ORDER BY h1_return_pct DESC) AS rank_of_500
-FROM ret
-ORDER BY rank_of_500;
+SELECT ticker, grp, MIN(date) AS first_date, MAX(date) AS last_date, COUNT(*) AS trading_days,
+       ROUND(100 * (MAX_BY(adj_close, date) / MIN_BY(adj_close, date) - 1), 2) AS h1_return_pct
+FROM px
+GROUP BY ticker, grp
+ORDER BY h1_return_pct DESC;
 ```
 
 **Largest daily move: `LAG`, drop the first day, then `QUALIFY`**
@@ -135,7 +135,7 @@ render_go_further()
 render_prompt(
     "4.2",
     "How deep was the selloff?",
-    f"""Using post-market_close_adjusted in {P}, compute the maximum drawdown from 2026-01-02 to 2026-06-30 (the largest percent fall from a running peak) for NDAQ, ICE, CME and CBOE, with the trough date. Then give the median maximum drawdown across all tickers that have a close on every trading day in that window. Explain the window function you used. Read-only.""",
+    f"""Using post-market_close_adjusted in {P}, compute the maximum drawdown from 2026-01-02 to 2026-06-30 (the largest percent fall from a running peak) for NDAQ, ICE, CME, CBOE and SPY, with the trough date. Explain the window function you used. Read-only.""",
     optional=True,
 )
 
@@ -147,31 +147,31 @@ render_check(
 | CME | −30.91% | 2026-06-29 |
 | ICE | −29.50% | 2026-06-30 |
 | NDAQ | −23.24% | 2026-06-29 |
-| Median S&P 500 stock (500 tickers) | −21.01% | |
+| SPY | −9.27% | 2026-03-30 |
 
-A running peak is `MAX(adj_close) OVER (PARTITION BY ticker ORDER BY date ROWS UNBOUNDED PRECEDING)`. All four exchange operators bottomed at the end of June, deeper than the typical S&P 500 stock, yet CBOE finished the half only 2.3% down. A single return number hides the path.
+A running peak is `MAX(adj_close) OVER (PARTITION BY ticker ORDER BY date ROWS UNBOUNDED PRECEDING)`. All four exchange operators bottomed at the end of June, at 2.5 to 4 times SPY's drawdown, yet CBOE finished the half only 2.3% down. A single return number hides the path.
 """
 )
 
 render_prompt(
     "4.3",
     "Do exchange stocks move with the market?",
-    f"""From {P}, build an equal-weight S&P 500 daily return series: on each trading day from 2026-01-02 to 2026-06-30, the average daily return (post-market_close_adjusted) of the tickers that have a close on every trading day in that window. Compute the correlation of NDAQ, ICE, CME and CBOE's daily returns with that series, with the number of days used, sorted by correlation. Interpret the result in two sentences. Read-only.""",
+    f"""Compute the correlation of daily returns (post-market_close_adjusted) from 2026-01-02 to 2026-06-30 between SPY and each of NDAQ, ICE, CME, CBOE, QQQ and EWC, from {P}, with the number of days used. Sort by correlation. Interpret the result in two sentences. Read-only.""",
     optional=True,
 )
 
 render_check(
     """
-| Ticker | Correlation with the equal-weight S&P 500 | Days |
+| Ticker | Correlation with SPY | Days |
 | --- | --- | --- |
-| NDAQ | 0.37 | 122 |
-| ICE | 0.22 | 122 |
-| CBOE | −0.03 | 122 |
-| CME | −0.04 | 122 |
+| QQQ | 0.94 | 122 |
+| EWC | 0.61 | 122 |
+| NDAQ | 0.34 | 122 |
+| ICE | 0.12 | 122 |
+| CBOE | −0.07 | 122 |
+| CME | −0.11 | 122 |
 
-122 days, not 123: the first day has no previous close. NDAQ and ICE move modestly with the market; CME and CBOE barely do. Their revenue rises with trading volume, which tends to jump when markets are stressed. Expect CoCo to state an explanation like this as a hypothesis, not a fact.
-
-Compounding the equal-weight daily average gives **+10.30%** for the half: a benchmark line you can add to your app in exercise 5.
+122 days, not 123: the first day has no previous close. The ETFs track the market. The exchange operators barely do, and CME and CBOE move slightly against it: their revenue rises with trading volume, which tends to jump when markets are stressed. Expect CoCo to state an explanation like this as a hypothesis, not a fact.
 """
 )
 
@@ -181,14 +181,14 @@ render_key_concepts(
         ("PARTITION BY / ORDER BY", "`PARTITION BY ticker` restarts the window for each ticker. `ORDER BY date` decides what *previous* means."),
         ("NULL ordering", "In Snowflake, `NULL` sorts last ascending and **first** descending, unless you say `NULLS FIRST` / `NULLS LAST`."),
         ("Return vs drawdown", "Return compares start and end. Drawdown is the worst fall from a peak along the way. Risk discussions need both."),
-        ("Equal-weight index", "Each stock counts the same, whatever its size. The official S&P 500 is cap-weighted, so its return differs."),
+        ("Correlation", "From −1 to +1: how closely two daily return series move together. It describes co-movement, not cause."),
     ]
 )
 
 render_takeaways(
     [
-        "Ranked 500 stocks with window functions through CoCo, without writing them yourself.",
-        "Excluded incomplete tickers before ranking, instead of trusting the output.",
+        "Compared three groups of tickers with window functions through CoCo, without writing them yourself.",
+        "Checked trading-day counts before trusting a return.",
         "Caught the first-day `NULL` edge case that comes from where your copy starts.",
     ]
 )

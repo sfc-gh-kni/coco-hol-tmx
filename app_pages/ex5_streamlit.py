@@ -123,7 +123,7 @@ def load_universe():
     return conn.query("SELECT TICKER, MIN(DATE) AS MIN_D, MAX(DATE) AS MAX_D FROM {P} GROUP BY TICKER")
 ```
 
-**3. Sidebar filters.** `st.multiselect` over the 503 tickers and `st.date_input` bounded by `MIN(DATE)` and `MAX(DATE)`.
+**3. Sidebar filters.** `st.multiselect` over the table's ~13,900 tickers (type to search) and `st.date_input` bounded by `MIN(DATE)` and `MAX(DATE)`.
 
 **4. Query the selection.** A pivot like exercise 3, limited to the selected tickers and dates. Tickers come from the table, an allow-list, never from free text.
 
@@ -166,9 +166,9 @@ st.markdown("##### Finished early? Stretch ideas")
 st.markdown(
     """
 These aren't part of the checked path. Ask CoCo to:
-- add an **equal-weight S&P 500** line: the average daily return of all tickers with a full history in the range, compounded and indexed to 100. For 2026-01-02 to 2026-06-30 it should end at about **110.3** (exercise 4.3);
-- add a **drawdown** chart (percent below the running peak). For the exchange operators it should bottom at the **end of June**, between −23% (NDAQ) and −37% (CBOE), as in prompt 4.2;
-- add a **top and bottom 10** table of returns over the selected range, excluding tickers with missing days;
+- add **SPY** as a dashed **benchmark line** on the indexed chart, whatever tickers are selected. For 2026-01-02 to 2026-06-30 it should end at **109.9** (QQQ ends at 120.3, EWC at 106.9);
+- add a drawdown chart (percent below the running peak). For the exchange operators it should bottom at the **end of June**, between −23% (NDAQ) and −37% (CBOE), against −9% for SPY, as in prompt 4.2;
+- add a **compare to peers** mode: pick one ticker and show its return against SPY, QQQ and EWC over the selected range;
 - add a **download** button for the filtered data as CSV.
 
 Review each change before you click **Keep**, and redeploy to publish it.

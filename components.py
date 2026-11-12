@@ -2,14 +2,13 @@ import re
 
 import streamlit as st
 
-from sp500 import AS_OF as SP500_AS_OF
-from sp500 import TICKERS as SP500_TICKERS
-
 PREFIX = "DEV_EDX_HACKATHONTOR"
 S3_PREFIX = "DEV_HACKATHONTOR"
 SCHEMA = "CONSUMER"
 SOURCE_VIEW = "SNOWFLAKE_CURATED_DATA_FREE.PUBLIC_DATA_FREE.STOCK_PRICE_TIMESERIES"
 EXCHANGE_OPERATORS = ["NDAQ", "ICE", "CME", "CBOE"]
+BENCHMARK_ETFS = ["SPY", "QQQ", "EWC"]
+CANADIAN_INTERLISTED = ["RY", "TD", "BMO", "BNS", "ENB", "CNQ", "SHOP"]
 
 TEAMS = [
     "AGENTARCHITECTS",
@@ -119,10 +118,6 @@ def require_context():
             "Pick **your team** and enter **your initials** in the sidebar first. Until then, prompts show `<TEAM>` and `<INITIALS>` placeholders.",
             icon=":material/badge:",
         )
-
-
-def sp500_in_list() -> str:
-    return ", ".join(f"'{t}'" for t in SP500_TICKERS)
 
 
 def _done_store() -> dict:
